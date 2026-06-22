@@ -6,10 +6,15 @@ const fs = require('fs');
 const { createServer } = require('@app-core/server');
 const { createConnection } = require('@app-core/mongoose');
 const { createQueue } = require('@app-core/queue');
+const { appLogger } = require('@app-core/logger');
 
 const canLogEndpointInformation = process.env.CAN_LOG_ENDPOINT_INFORMATION;
 
-createConnection({
+if (!process.env.MONGODB_URI) {
+  throw new Error('MONGODB_URI is required');
+}
+
+const dbConnectionPromise = createConnection({
   uri: process.env.MONGODB_URI,
 });
 
@@ -24,6 +29,12 @@ const server = createServer({
 const ENDPOINT_CONFIGS = [
   {
     path: './endpoints/onboarding/',
+  },
+  {
+    path: './endpoints/creator-cards/',
+  },
+  {
+    path: './endpoints/health/',
   },
 ];
 
@@ -87,3 +98,16 @@ ENDPOINT_CONFIGS.forEach((config) => {
 });
 
 server.startServer();
+appLogger.info({ endpointConfigs: ENDPOINT_CONFIGS }, 'creator-card-service-booted');
+
+function shutdown(signal) {
+  appLogger.info({ signal }, 'shutdown-signal-received');
+
+  dbConnectionPromise
+    .then(({ connection } = {}) => connection?.close())
+    .catch((error) => appLogger.error({ error }, 'shutdown-db-close-error'))
+    .finally(() => process.exit(0));
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -104,6 +104,35 @@ describe('creator-cards helpers', () => {
       expect(slug.length).to.be.greaterThan('hi-'.length);
     });
 
+    it('caps the slug at 50 characters for a title at the 100-character maximum', async () => {
+      const longTitle = 'a'.repeat(100);
+
+      const slug = await generateUniqueSlug({ title: longTitle, repository: alwaysFreeRepository });
+
+      expect(slug.length).to.be.at.most(50);
+    });
+
+    it('caps the slug at 50 characters even when a random suffix has to be appended', async () => {
+      let callCount = 0;
+      const takenLongTitleRepository = {
+        findOne: async () => null,
+        raw: () => ({
+          findOne: async () => {
+            callCount += 1;
+            // the bare (truncated) base candidate is taken, forcing the suffix path
+            return callCount === 1 ? { slug: 'taken' } : null;
+          },
+        }),
+      };
+
+      const slug = await generateUniqueSlug({
+        title: 'a'.repeat(100),
+        repository: takenLongTitleRepository,
+      });
+
+      expect(slug.length).to.be.at.most(50);
+    });
+
     it('appends a random suffix when the base slug is already taken', async () => {
       let callCount = 0;
       const takenOnceRepository = {

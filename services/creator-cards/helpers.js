@@ -4,6 +4,10 @@ const SLUG_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789_-';
 const ACCESS_CODE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const WHITESPACE_CHARS = ' \t\n\r\f\v';
 const MAX_SLUG_GENERATION_ATTEMPTS = 25;
+const MAX_SLUG_LENGTH = 50;
+// "-" + 6-char random suffix; the base must leave room for this when a suffix is appended.
+const SUFFIX_LENGTH = 7;
+const MAX_SLUG_BASE_LENGTH = MAX_SLUG_LENGTH - SUFFIX_LENGTH;
 
 function buildSlugBase(title = '') {
   let result = '';
@@ -18,6 +22,7 @@ function buildSlugBase(title = '') {
       const isAllowedChar = SLUG_CHARS.includes(normalizedChar);
 
       if (!isAllowedChar) return;
+      if (result.length >= MAX_SLUG_BASE_LENGTH) return;
 
       if (normalizedChar === '-') {
         if (lastCharWasHyphen) return;
